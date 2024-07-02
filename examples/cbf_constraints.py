@@ -23,21 +23,21 @@ def main():
 
     a1 = Agent(state=np.array([0.5,-2.]),
                shape=Sphere(0.5),
-               dynamics=SingleIntegrator2d())
+               dynamics=SingleIntegrator2d(e_bounds=(0.0, 0.0)))
 
     # CBF constraint
     rightPlane = Obstacle(state=np.array([2.,0.]),
                   shape=HalfPlane(n=np.array([-1,0]), #n is the normal to the plane. It's sign defines the direction in which it is visible to an "agent"
                   rotation=0),
                   dynamics=SingleIntegrator2d(),
-                  p = 3.0) # "p" is the power of alpha in CBF constraint. It
+                  p = 1.0) # "p" is the power of alpha in CBF constraint. It
                  # dictates how aggresive CBF is.
 
     leftPlane = Obstacle(state=np.array([-2.,0.]),
                   shape=HalfPlane(n=np.array([1,0]), #n is the normal to the plane. It's sign defines the direction in which it is visible to an "agent"
                   rotation=0),
                   dynamics=SingleIntegrator2d(),
-                  p = 3.0) # "p" is the power of alpha in CBF constraint. It
+                  p = 1.0) # "p" is the power of alpha in CBF constraint. It
                  # dictates how aggresive CBF is.
     
     # CLF Constraint

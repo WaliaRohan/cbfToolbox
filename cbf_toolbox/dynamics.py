@@ -24,21 +24,25 @@ class Dynamics:
         m (int): Dimension of the input vector, u
         f (function): Function for the drift dynamics
         g (function): Function for the control influence
+        e_bounds: Bounds for introducing error into state vector
     """
 
-    def __init__(self,n,m,f,g) -> None:
+    def __init__(self,n,m,f,g,e_bounds=(0,0)) -> None:
         """
         Args:
             n (int): Dimension of the state vector, x
             m (int): Dimension of the input vector, u
             f (function): Function for the drift dynamics
-            g (function): Function for the control influence    
+            g (function): Function for the control influence  
+            e_bounds: Bounds for introducing error into state vector  
         """
 
         self.n = n # Dimension of state vector
         self.m = m # Dimension of input vector u
         self.f = f # Drift function
         self.g = g # Affine control function
+        self.e_bounds = e_bounds # State error bounds
+        self.error = 0
         
     def dx(self, x, u):
         """
@@ -60,7 +64,12 @@ class Dynamics:
             u (numpy.ndarray): The control vector. 
         """
 
-        return x + dt*self.dx(x,u)
+        self.error = np.random.uniform(self.e_bounds[0], self.e_bounds[1])
+        return x + dt*self.dx(x,u) + self.error
+    
+    # return the error associated with state vector
+    def error():
+        return self.error
 
 
 class SingleIntegrator(Dynamics):
@@ -73,7 +82,7 @@ class SingleIntegrator(Dynamics):
     x' = Iu
     '''
 
-    def __init__(self, n):
+    def __init__(self, n, e_bounds=(0, 0)):
         '''
         Args:
             n (int): Dimension of state vector x and input vector u
@@ -81,16 +90,16 @@ class SingleIntegrator(Dynamics):
 
         f = lambda x : 0
         g = lambda x : np.eye(n)
-        super().__init__(n, n, f, g)
+        super().__init__(n, n, f, g, e_bounds)
 
     def __repr__(self):
         return f'SingleIntegrator{self.n}d'
 
 
-def SingleIntegrator2d():
+def SingleIntegrator2d(e_bounds=(0, 0)):
     '''Returns an instance of a 2D SingleIntegrator object'''
 
-    return SingleIntegrator(2)
+    return SingleIntegrator(2, e_bounds)
 
 def SingleIntegrator3d():
     '''Returns an instance of a 3D SingleIntegrator object'''
