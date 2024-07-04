@@ -26,17 +26,23 @@ class Vertex(ABC):
     The objects that are in the simulation (Agent, Obstacle, Goal) are types of Vertex and
     relate to each other through either a CLF or a CBF
     """
-    def __init__(self, state, shape, dynamics, color='red'):
+    def __init__(self, state, shape, dynamics, color='red', use_pred=False):
         self.state = state
+        self.state_pred = np.copy(state) # predicted state, initially a deep copy
         self.shape = shape
         self.dynamics = dynamics
         self.color = color
+        self.use_pred=use_pred # flag to use predicted state (use if True)
         
     def step(self,u=None,dt=0.1):
         """Move forward one time step"""
         if u is None:
             u = np.zeros(self.dynamics.m)
-        self.state = self.dynamics.step(self.state,u,dt)
+
+        if self.use_pred:
+            self.state = self.dynamics.step(self.state_pred,u,dt)
+        else:
+            self.state = self.dynamics.step(self.state, u, dt)
 
     def plot(self,ax):
         """Plot the Vertex object"""
@@ -45,13 +51,17 @@ class Vertex(ABC):
 class Agent(Vertex):
     """Control inputs for an agent are solved for by the Gurobi model"""
 
-    def __init__(self, state, shape, dynamics, safety=True, plot_arrows=False, plot_path=False, color='green', k=1.0, p=1.0):
-        super().__init__(state, shape, dynamics, color)
+    def __init__(self, state, shape, dynamics,  
+                 safety=True, plot_arrows=False, plot_path=False, use_pred=True,
+                   color='green', k=1.0, p=1.0):
+        super().__init__(state, shape, dynamics, color, use_pred=use_pred)
         
         # Boolean params
         self.safety = safety
         self.plot_arrows = plot_arrows
         self.plot_path = plot_path
+        self.error_hist = [] # list to keep track of errors for plotting
+        self.error_hist.append(self.state-self.state_pred) # this should be 0
 
         # History
         self.trajectory = state
@@ -119,6 +129,11 @@ class Agent(Vertex):
         if u is None:
             u = self.u
         super().step(u,dt)
+
+        # Generate predicted state through user provided error function
+        self.state_pred = self.error_func(self.state)
+        self.error_hist.append(self.state-self.state_pred)
+
         # Save control action
         self.trajectory = np.vstack([self.trajectory,self.state])
         self.u_hist.append(self.u)
@@ -168,6 +183,23 @@ class Agent(Vertex):
         b = state + (u/np.linalg.norm(u))*rad
         plt.arrow(b[0],b[1],u[0],u[1],head_width=0.2,width=0.05,ec='green',color='green',length_includes_head=True)
         
+
+    '''
+    Function for generating an output from a uniform distribution proportional to
+    the y position of an agent. 
+
+    state: state of an agent
+
+    '''
+    def error_func(self, state):
+
+        state_pred = np.copy(state) # make a deep copy so state isn't affected
+
+        k = 0.1 # magic number -> change based on trial/error or empirical data
+
+        state_pred[1] = state_pred[1] + np.random.uniform(0, state[1])*k
+
+        return state_pred
 
 class Obstacle(Vertex):
     """Object that relates to an agent through a CBF. Agent will avoid collision with obstacles"""
